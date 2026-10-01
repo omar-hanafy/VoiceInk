@@ -10,7 +10,7 @@ struct OnboardingTrustScreen: View {
         OnboardingStepScreen(
             systemImage: "lock.shield",
             title: "Privacy Starts Here",
-            subtitle: "Review how VoiceInk handles your data before choosing a license.",
+            subtitle: "Review how VoiceInk handles your data before getting started.",
             contentMaxWidth: max(contentMaxWidth, 720),
             showsHeader: false,
             contentYOffset: 0
@@ -19,7 +19,7 @@ struct OnboardingTrustScreen: View {
         } bottomBar: {
             OnboardingBottomBar(
                 leadingTitle: "Back",
-                primaryTitle: "Continue",
+                primaryTitle: "Start VoiceInk",
                 isPrimaryEnabled: true,
                 onLeading: onBack,
                 onPrimary: onContinue

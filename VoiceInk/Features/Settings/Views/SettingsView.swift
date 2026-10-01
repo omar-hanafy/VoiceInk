@@ -246,6 +246,10 @@ struct SettingsView: View {
                         get: { updaterViewModel.checksForUpdatesWhenDashboardAppears },
                         set: { updaterViewModel.setChecksForUpdatesWhenDashboardAppears($0) }
                     ))
+                    #if LOCAL_BUILD
+                    .disabled(true)
+                    .help("Updates are disabled for this personal build. Rebuild to update.")
+                    #endif
 
                 Toggle("Show Announcements", isOn: $enableAnnouncements)
                     .onChange(of: enableAnnouncements) { _, newValue in

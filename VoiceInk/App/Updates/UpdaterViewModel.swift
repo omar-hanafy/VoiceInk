@@ -32,6 +32,10 @@ final class UpdaterViewModel: NSObject, ObservableObject, SPUUpdaterDelegate {
     override init() {
         let defaults = UserDefaults.standard
         self.defaults = defaults
+        #if LOCAL_BUILD
+        // Keep the installed personal build from being replaced by an upstream release.
+        super.init()
+        #else
         checksForUpdatesWhenDashboardAppears = Self.initialAutomaticCheckPreference(in: defaults)
         super.init()
 
@@ -46,9 +50,11 @@ final class UpdaterViewModel: NSObject, ObservableObject, SPUUpdaterDelegate {
         canCheckForUpdates = updater.canCheckForUpdates
         updater.publisher(for: \.canCheckForUpdates)
             .assign(to: &$canCheckForUpdates)
+        #endif
     }
 
     func setChecksForUpdatesWhenDashboardAppears(_ value: Bool) {
+        #if !LOCAL_BUILD
         guard checksForUpdatesWhenDashboardAppears != value else { return }
 
         checksForUpdatesWhenDashboardAppears = value
@@ -59,6 +65,7 @@ final class UpdaterViewModel: NSObject, ObservableObject, SPUUpdaterDelegate {
         } else {
             availableUpdate = nil
         }
+        #endif
     }
 
     func checkForUpdatesIfDue() {

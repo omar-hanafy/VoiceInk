@@ -88,7 +88,7 @@ struct GitHubStarPromptCard: View {
         HStack(spacing: 8) {
             Image(systemName: completionState == .starred ? "checkmark.circle.fill" : "arrow.up.right.circle.fill")
                 .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(completionState == .starred ? AppTheme.Sidebar.license : .secondary)
+                .foregroundStyle(completionState == .starred ? AppTheme.Sidebar.success : .secondary)
 
             Text(completionState == .starred ? "Starred — thank you!" : "GitHub opened")
                 .font(.system(size: 13, weight: .semibold))

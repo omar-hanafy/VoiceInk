@@ -19,7 +19,7 @@ final class SystemInfoService {
             APP INFORMATION:
             App Version: \(getAppVersion())
             Build Version: \(getBuildVersion())
-            License Status: \(getLicenseStatus())
+            Pro Access: Always enabled (personal build)
 
             OPERATING SYSTEM:
             macOS Version: \(ProcessInfo.processInfo.operatingSystemVersionString)
@@ -236,10 +236,6 @@ final class SystemInfoService {
         @unknown default:
             return "Unknown"
         }
-    }
-
-    private func getLicenseStatus() -> String {
-        LicenseViewModel.shared.diagnosticLicenseStatus
     }
 
     private static func englishTimestamp() -> String {

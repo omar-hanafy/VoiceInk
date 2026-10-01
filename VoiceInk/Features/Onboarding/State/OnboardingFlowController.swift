@@ -55,11 +55,6 @@ final class OnboardingFlowController {
         moveToExperienceStep(0, enhancementService: enhancementService)
     }
 
-    func goToLicenseStep(isTranscriptionSetupReady: Bool) {
-        guard coordinator.isReadyForExperience(isTranscriptionSetupReady: isTranscriptionSetupReady) else { return }
-        coordinator.storedStage = OnboardingStage.license.rawValue
-    }
-
     func goToContextAwarenessStep(isTranscriptionSetupReady: Bool) {
         guard coordinator.isReadyForExperience(isTranscriptionSetupReady: isTranscriptionSetupReady),
             coordinator.shouldShowContextAwarenessAfterCurrentExperience
@@ -177,15 +172,6 @@ final class OnboardingFlowController {
         refreshExperienceModeState(enhancementService: enhancementService)
     }
 
-    func goToPreviousLicenseStep(isTranscriptionSetupReady: Bool) {
-        guard coordinator.isReadyForExperience(isTranscriptionSetupReady: isTranscriptionSetupReady) else {
-            coordinator.storedStage = OnboardingStage.api.rawValue
-            return
-        }
-
-        coordinator.storedStage = OnboardingStage.trust.rawValue
-    }
-
     func advanceExperienceStep(
         isTranscriptionSetupReady: Bool,
         enhancementService: AIEnhancementService
@@ -230,26 +216,6 @@ final class OnboardingFlowController {
         }
     }
 
-    func startLicenseTrial(
-        isTranscriptionSetupReady: Bool,
-        onComplete: () -> Void
-    ) {
-        guard coordinator.licenseViewModel.startTrial() else { return }
-        completeOnboarding(
-            isTranscriptionSetupReady: isTranscriptionSetupReady,
-            onComplete: onComplete
-        )
-    }
-
-    func activateLicense(_ licenseKey: String) {
-        Task { @MainActor in
-            await coordinator.licenseViewModel.validateLicense(licenseKey)
-            if coordinator.licenseViewModel.hasVerifiedLicense {
-                coordinator.licenseKeyDraft = ""
-            }
-        }
-    }
-
     func reconcileStage(
         isTranscriptionSetupReady: Bool,
         enhancementService: AIEnhancementService
@@ -271,8 +237,7 @@ final class OnboardingFlowController {
             goToFirstIncompleteSetupStep(isTranscriptionSetupReady: isTranscriptionSetupReady)
         }
 
-        if (coordinator.stage == .experience || coordinator.stage == .contextAwareness || coordinator.stage == .trust
-            || coordinator.stage == .license)
+        if (coordinator.stage == .experience || coordinator.stage == .contextAwareness || coordinator.stage == .trust)
             && !coordinator.isReadyForExperience(isTranscriptionSetupReady: isTranscriptionSetupReady)
         {
             goToFirstIncompleteSetupStep(isTranscriptionSetupReady: isTranscriptionSetupReady)
@@ -342,11 +307,7 @@ final class OnboardingFlowController {
         isTranscriptionSetupReady: Bool,
         onComplete: () -> Void
     ) {
-        #if LOCAL_BUILD
-            let isFinalStage = coordinator.stage == .license || coordinator.stage == .trust
-        #else
-            let isFinalStage = coordinator.stage == .license
-        #endif
+        let isFinalStage = coordinator.stage == .trust
 
         guard
             isFinalStage || coordinator.isCurrentExperienceReady(isTranscriptionSetupReady: isTranscriptionSetupReady)
