@@ -110,6 +110,69 @@ final class PersonalConfigurationTests: XCTestCase {
     }
 
     @MainActor
+    func testPastePreservesTranscriptAndResolvesAutoSendBeforeDelivery() async {
+        let defaults = UserDefaults.standard
+        let original = defaults.volatileDomain(forName: UserDefaults.argumentDomain)
+        defer { defaults.setVolatileDomain(original, forName: UserDefaults.argumentDomain) }
+
+        let text = "Personal transcript.\nQuotes: ' \" & $() and Unicode: café."
+        for appendSpace in [false, true] {
+            for sendAfterPaste in [false, true] {
+                for modeKey in FinishAndSendKey.allCases {
+                    let values: [String: Any] = [
+                        "AppendTrailingSpace": appendSpace,
+                        FinishAndSendSettings.key: FinishAndSendKey.commandEnter.rawValue,
+                        "VoiceInkLicenseRemovalPending": true,
+                        "VoiceInkLicenseRequiresActivation": true,
+                        "VoiceInkActivationsLimit": 0,
+                    ]
+                    defaults.setVolatileDomain(
+                        original.merging(values) { _, testValue in testValue },
+                        forName: UserDefaults.argumentDomain
+                    )
+
+                    var events: [String] = []
+                    let delivery = TranscriptionDelivery { pastedText, sendKey in
+                        XCTAssertEqual(events, ["idle", "dismiss"])
+                        XCTAssertEqual(pastedText, text + (appendSpace ? " " : ""))
+                        XCTAssertEqual(sendKey, sendAfterPaste ? .commandEnter : modeKey)
+                        events.append("paste")
+                        return Task { CursorPaster.PasteOutcome(result: .commandNotPosted, autoLearnGeneration: nil) }
+                    }
+                    let request = TranscriptionDelivery.Request(
+                        transcription: Transcription(text: text, duration: 1, transcriptionStatus: .completed),
+                        text: text,
+                        output: OutputRuntimeConfiguration(
+                            mode: nil, outputMode: .paste, autoSendKey: modeKey, customCommand: nil
+                        ),
+                        responseConfig: nil,
+                        responseError: nil,
+                        isAssistantFollowUp: false,
+                        sendAfterPaste: sendAfterPaste
+                    )
+                    let actions = TranscriptionDelivery.Actions(
+                        setState: { state in
+                            guard case .idle = state else {
+                                XCTFail("Paste delivery must leave the recorder idle")
+                                return
+                            }
+                            events.append("idle")
+                        },
+                        dismiss: { events.append("dismiss") },
+                        sendFollowUp: { _, _ in XCTFail("Paste must not send an assistant follow-up") },
+                        showResponse: { _, _ in XCTFail("Paste must not show an assistant response") },
+                        failResponse: { _ in XCTFail("Paste must not show a response error") }
+                    )
+
+                    await delivery.deliver(request, actions: actions)
+
+                    XCTAssertEqual(events, ["idle", "dismiss", "paste"])
+                }
+            }
+        }
+    }
+
+    @MainActor
     func testCustomCommandReceivesOnlyTranscriptThroughStandardInputAndEnvironment() async throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(
             "VoiceInkPersonalConfigurationTests-\(UUID().uuidString)",
@@ -134,6 +197,7 @@ final class PersonalConfigurationTests: XCTestCase {
             output: OutputRuntimeConfiguration(
                 mode: nil,
                 outputMode: .customCommand,
+                autoSendKey: .none,
                 customCommand: ModeCustomCommand(command: command)
             ),
             responseConfig: nil,
